@@ -13,7 +13,9 @@ public class SteadyPumpManager implements PumpManager {
     /**
      * Thread-safe queue for elimination of simultaneous pumping and selecting pump with the highest remaining amount
      */
-    private final Queue<GasPump> pumpQueue = new PriorityBlockingQueue(1, new GasPumpComparator());
+    private final Queue<GasPump> gasPumpQueue = new PriorityBlockingQueue(1, new GasPumpComparator());
+
+    public SteadyPumpManager() {}
 
     /**
      * Takes the pump with largest remaining amount and pump it. If no pumps available at this moment - NotEnoughGasException is thrown
@@ -23,14 +25,14 @@ public class SteadyPumpManager implements PumpManager {
     public void pumpGas(double amountInLiters) throws NotEnoughGasException {
         GasPump gasPump = null;
         try {
-            gasPump = pumpQueue.poll();
+            gasPump = gasPumpQueue.poll();
             if (gasPump == null || gasPump.getRemainingAmount() < amountInLiters)
                 throw new NotEnoughGasException();
 
             gasPump.pumpGas(amountInLiters);
         } finally {
             if (gasPump != null)
-                pumpQueue.add(gasPump);
+                gasPumpQueue.add(gasPump);
         }
     }
 
@@ -39,7 +41,7 @@ public class SteadyPumpManager implements PumpManager {
      * @param gasPump
      */
     public void addGasPump(GasPump gasPump) {
-        pumpQueue.add(gasPump);
+        gasPumpQueue.add(gasPump);
     }
 
     /**

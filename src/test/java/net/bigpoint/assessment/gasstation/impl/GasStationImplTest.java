@@ -5,12 +5,18 @@ import net.bigpoint.assessment.gasstation.GasStation;
 import net.bigpoint.assessment.gasstation.GasType;
 import net.bigpoint.assessment.gasstation.exceptions.GasTooExpensiveException;
 import net.bigpoint.assessment.gasstation.exceptions.NotEnoughGasException;
+import net.bigpoint.assessment.gasstation.impl.managers.PumpManagerEnum;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import org.junit.runners.Parameterized.Parameter;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 import static org.junit.Assert.*;
@@ -18,20 +24,28 @@ import static org.junit.Assert.*;
 /**
  * Created by aaalekseev on 06-Aug-16.
  */
+@RunWith(Parameterized.class)
 public class GasStationImplTest {
     private final double DELTA = 0.0001;
     private final double DIESEL_PRICE = 1.5;
-    private final double TEST_PUMP_GAS_AMOUNT = 100;
+    private final double TEST_PUMP_GAS_AMOUNT = 10;
 
     private GasStation gasStation;
     private int initialPumpCount;
+
+    @Parameter
+    public PumpManagerEnum pumpManagerStrategy;
+    @Parameters()
+    public static Iterable<PumpManagerEnum> data() {
+        return Arrays.asList(PumpManagerEnum.SteadyPumpManager, PumpManagerEnum.SteadyBlockingPumpManager);
+    }
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
-        gasStation = new GasStationImpl();
+        gasStation = new GasStationImpl(pumpManagerStrategy);
 
         // Add pumps
         gasStation.addGasPump(new GasPump(GasType.DIESEL, TEST_PUMP_GAS_AMOUNT));

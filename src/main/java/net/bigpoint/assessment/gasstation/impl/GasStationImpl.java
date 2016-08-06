@@ -6,7 +6,7 @@ import net.bigpoint.assessment.gasstation.GasType;
 import net.bigpoint.assessment.gasstation.exceptions.GasTooExpensiveException;
 import net.bigpoint.assessment.gasstation.exceptions.NotEnoughGasException;
 import net.bigpoint.assessment.gasstation.impl.managers.PumpManager;
-import net.bigpoint.assessment.gasstation.impl.managers.SteadyPumpManager;
+import net.bigpoint.assessment.gasstation.impl.managers.PumpManagerEnum;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,17 +41,31 @@ public class GasStationImpl implements GasStation {
     private final AtomicInteger cancellationsNoGasCounter = new AtomicInteger(0);
     private final AtomicInteger cancellationsTooExpensiveCounter = new AtomicInteger(0);
 
-    // Default constructor
-    public GasStationImpl() {}
-    // Main constructor
-    public GasStationImpl(Map<GasType, Double> gasPrices, Collection<GasPump> initialPumps) {
+    /**
+     * PumpManager encapsulates strategy for the pump selection process.
+     */
+    private final Class<PumpManager> pumpManagerClass;
+
+    /**
+     * Constructors
+     * @param pumpManagerStrategy - required for the gas station creation
+     */
+    public GasStationImpl(PumpManagerEnum pumpManagerStrategy) throws ClassNotFoundException {
+        this.pumpManagerClass = (Class<PumpManager>)Class.forName(pumpManagerStrategy.toString());
+    }
+    public GasStationImpl(PumpManagerEnum pumpManagerStrategy, Map<GasType, Double> gasPrices, Collection<GasPump> initialPumps) throws ClassNotFoundException {
+        this.pumpManagerClass = (Class<PumpManager>)Class.forName(pumpManagerStrategy.toString());
         gasPricesMap.putAll(gasPrices);
-        initialPumps.forEach(gasPump -> addGasPump(gasPump));
+        initialPumps.forEach(this::addGasPump);
     }
 
     public void addGasPump(GasPump gasPump) {
-        // Add new Manager if absent
-        pumpManagersMap.putIfAbsent(gasPump.getGasType(), new SteadyPumpManager());
+        // Add a new Manager if absent
+        try {
+            pumpManagersMap.putIfAbsent(gasPump.getGasType(), pumpManagerClass.newInstance());
+        } catch (IllegalAccessException|InstantiationException e) {
+            e.printStackTrace(); // Ignored
+        }
         // Add to allPumps Collection
         allGasPumps.add(gasPump);
         pumpManagersMap.get(gasPump.getGasType()).addGasPump(gasPump);

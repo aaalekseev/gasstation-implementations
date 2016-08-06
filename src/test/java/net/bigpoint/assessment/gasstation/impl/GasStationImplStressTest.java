@@ -3,8 +3,12 @@ package net.bigpoint.assessment.gasstation.impl;
 import net.bigpoint.assessment.gasstation.GasPump;
 import net.bigpoint.assessment.gasstation.GasStation;
 import net.bigpoint.assessment.gasstation.GasType;
+import net.bigpoint.assessment.gasstation.impl.managers.PumpManagerEnum;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -14,12 +18,20 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by aaalekseev on 06-Aug-16.
  */
+@RunWith(Parameterized.class)
 public class GasStationImplStressTest {
     private final double DELTA = 0.0001;
 
+    @Parameterized.Parameter
+    public PumpManagerEnum pumpManagerStrategy;
+    @Parameterized.Parameters()
+    public static Iterable<PumpManagerEnum> data() {
+        return Arrays.asList(PumpManagerEnum.SteadyPumpManager, PumpManagerEnum.SteadyBlockingPumpManager);
+    }
+
     @Test
-    public void smokeTest() throws InterruptedException {
-        final GasStation gasStation = new GasStationImpl();
+    public void gasStationTest() throws InterruptedException, ClassNotFoundException {
+        final GasStation gasStation = new GasStationImpl(pumpManagerStrategy);
 
         final double regularPrice = 1.1d;
         final double dieselPrice = 2.2d;
@@ -52,8 +64,9 @@ public class GasStationImplStressTest {
             buyerExecutor.submit(() -> gasStation.buyGas(GasType.REGULAR, buyAmount, regularPrice));
             buyerExecutor.submit(() -> gasStation.buyGas(GasType.DIESEL, buyAmount, dieselPrice));
             buyerExecutor.submit(() -> gasStation.buyGas(GasType.SUPER, buyAmount, superPrice));
-            // Wait till previous purchase will finish
-            Thread.sleep(110 * buyAmount);
+            // Wait till previous purchase will finish for non-blocking strategy
+            if(pumpManagerStrategy == PumpManagerEnum.SteadyPumpManager)
+                Thread.sleep(110 * buyAmount);
         }
         buyerExecutor.shutdown();
         buyerExecutor.awaitTermination(10, TimeUnit.MINUTES);
